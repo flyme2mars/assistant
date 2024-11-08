@@ -1,5 +1,6 @@
 # type: ignore
 from youtube_downloader import youtube_downloader
+from trim_video import trim_video
 from openai import OpenAI
 from dotenv import load_dotenv
 import json
@@ -13,7 +14,7 @@ XAI_API_KEY = os.getenv("XAI_API_KEY")
 functions = [
     {
         "name": "youtube_downloader",
-        "description": "Downloads a YouTube video with best quality to the 'downloads' folder",
+        "description": "Downloads a YouTube video with best quality to the 'media' folder",
         "parameters": {
             "type": "object",
             "properties": {
@@ -29,6 +30,32 @@ functions = [
                 },
             },
             "required": ["url", "filename"],
+            "optional": [],
+        },
+    },
+    {
+        "name": "trim_video",
+        "description": "Trims a video file from the media folder",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_name": {
+                    "type": "string",
+                    "description": "Name of the video file in the media folder",
+                    "example_value": "my_video",
+                },
+                "start_time": {
+                    "type": "string",
+                    "description": "Start time in format HH:MM:SS, MM:SS, or seconds",
+                    "example_value": "00:01:30",
+                },
+                "end_time": {
+                    "type": "string",
+                    "description": "End time in format HH:MM:SS, MM:SS, or seconds",
+                    "example_value": "00:02:45",
+                },
+            },
+            "required": ["video_name", "start_time", "end_time"],
             "optional": [],
         },
     },
@@ -83,11 +110,23 @@ def chat_with_tools():
                     tool_calls = chunk.choices[0].delta.tool_calls
                     if tool_calls:
                         for tool_call in tool_calls:
-                            if tool_call.function.name == "youtube_downloader":
+                            if tool_call.function.name in [
+                                "youtube_downloader",
+                                "trim_video",
+                            ]:
                                 args = json.loads(tool_call.function.arguments)
-                                result = youtube_downloader(
-                                    args["url"], args["filename"]
-                                )
+
+                                if tool_call.function.name == "youtube_downloader":
+                                    result = youtube_downloader(
+                                        args["url"], args["filename"]
+                                    )
+                                else:  # trim_video
+                                    result = trim_video(
+                                        args["video_name"],
+                                        args["start_time"],
+                                        args["end_time"],
+                                    )
+
                                 messages.append(
                                     {
                                         "role": "assistant",
