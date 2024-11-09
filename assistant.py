@@ -1,7 +1,7 @@
 # type: ignore
 from youtube_downloader import youtube_downloader
 from trim_video import trim_video
-from basic_video_func import open_video
+from basic_video_func import open_video, delete_video
 from openai import OpenAI
 from dotenv import load_dotenv
 import json
@@ -76,6 +76,22 @@ functions = [
             "optional": [],
         },
     },
+    {
+        "name": "delete_video",
+        "description": "Deletes a video file from the media folder",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "Name of the video file without extension",
+                    "example_value": "my_video",
+                },
+            },
+            "required": ["filename"],
+            "optional": [],
+        },
+    },
 ]
 
 
@@ -131,6 +147,7 @@ def chat_with_tools():
                                 "youtube_downloader",
                                 "trim_video",
                                 "open_video",
+                                "delete_video",
                             ]:
                                 args = json.loads(tool_call.function.arguments)
 
@@ -144,6 +161,8 @@ def chat_with_tools():
                                         args["start_time"],
                                         args["end_time"],
                                     )
+                                elif tool_call.function.name == "delete_video":
+                                    result = delete_video(args["filename"])
                                 else:  # open_video
                                     open_video(args["filename"])
                                     result = {
